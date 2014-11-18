@@ -68,7 +68,7 @@ if __name__ == '__main__':
         default = np.linspace(-1.,1.,41))
     parser.add_argument('--nu_flux_file', metavar='FILE', type=str,
         help= '''Input flux file in Honda format. ''',
-        default = 'flux/spl-solmin-aa.d')
+        default = 'flux/spl-solmax-aa.d')
 
     parser.add_argument('--muon_flux_file', metavar='FILE', type=str,
         help= '''Input flux file for CR muons. ''',

@@ -64,8 +64,8 @@ if __name__ == '__main__':
 
     parser.add_argument('--czbins', metavar='[-1.0,-0.8.,...]', type=json_string,
         help= '''Edges of the cos(zenith) bins, default is '''
-              '''21 edges (20 bins) from -1. (upward) to 0. horizontal in linear spacing.''',
-        default = np.linspace(-1.,1.,21))
+              '''41 edges (40 bins) from -1. (upward) to +1. (downward) in linear spacing.''',
+        default = np.linspace(-1.,1.,41))
     parser.add_argument('--nu_flux_file', metavar='FILE', type=str,
         help= '''Input flux file in Honda format. ''',
         default = 'flux/spl-solmin-aa.d')
@@ -92,11 +92,11 @@ if __name__ == '__main__':
                                 (len(args.czbins)-1,args.czbins[0],args.czbins[-1]))
 
     #Instantiate a flux model
-    flux_model = HondaFluxService(args.nu_flux_file)
+    nu_flux_model = HondaFluxService(args.nu_flux_file)
     muon_flux_model = MuonFluxService(args.muon_flux_file)
     
     #get the flux 
-    flux_maps = get_flux_maps(flux_model,muon_flux_model,args.ebins,args.czbins)
+    flux_maps = get_flux_maps(nu_flux_model,muon_flux_model,args.ebins,args.czbins)
 
     #write out to a file
     logging.info("Saving output to: %s"%args.outfile)

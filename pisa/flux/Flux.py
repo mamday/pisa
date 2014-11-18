@@ -43,7 +43,7 @@ def get_flux_maps(nu_flux_service, muon_flux_service, ebins, czbins, **params):
                     'map': service.get_flux(ebins,czbins,prim)}
  
         #be a bit verbose
-        physics.trace("Total flux of %s is %u [s^-1 m^-2]"%
+        physics.trace("Total flux of %s is %.2f [s^-1 m^-2]"%
                      (prim,maps[prim]['map'].sum()))
 
     #return this map

@@ -12,6 +12,7 @@
 # date:   2014-10-28
 
 import numpy as np
+import bisect
 from scipy.interpolate import bisplrep, bisplev
 from pisa.utils.log import logging
 from pisa.utils.utils import get_bin_centers, get_bin_sizes
@@ -41,16 +42,17 @@ class MuonFluxService():
 
         #Set the zenith and energy range
         flux_dict['energy'] = flux_dict['energy'][0]
-        flux_dict['coszen'] = np.linspace(0.95, -0.95, 20)
-
+        flux_dict['coszen'] = np.linspace(0.0, -0.95, 10)
+ 
         #Now get a spline representation of the flux table.
         logging.debug('Make spline representation of muon flux')
         # do this in log of energy and log of flux (more stable)
         logE, C = np.meshgrid(np.log10(flux_dict['energy']), flux_dict['coszen'])
         #Make splines
         self.spline_dict = {}
+        valid_muons = [list(i[:10]) for i in flux_dict['muons']]
         #Get the logarithmic flux
-        log_flux = np.log10(flux_dict['muons']).T
+        log_flux = np.log10(valid_muons).T
         #Get a spline representation
         spline =  bisplrep(logE, C, log_flux, s=smooth)
         #and store
@@ -62,21 +64,25 @@ class MuonFluxService():
         #Currently there is no use for prim except to make this function behave like the others 
         #Evaluate the flux at the bin centers
         evals = get_bin_centers(ebins)
-        czvals = get_bin_centers(czbins)
-    
+        sep_pt = bisect.bisect_left(czbins,0.0)
+        downbins = czbins[:sep_pt] 
+        upbins = czbins[sep_pt-1:] 
+        czvals = get_bin_centers(downbins)
+        upvals = get_bin_centers(upbins)
         # Get the spline interpolation, which is in
         # log(flux) as function of log(E), cos(zenith)
-        return_table = bisplev(np.log10(evals), czvals, self.spline_dict['muons'])
-        return_table = np.power(10., return_table).T
-    
+        down_table = bisplev(np.log10(evals), czvals, self.spline_dict['muons'])
+        down_table = np.power(10., down_table).T
+        up_table = np.array([np.array(len(evals)*[0.0]) for i in upvals]) 
         #Flux is given per sr and GeV, so we need to multiply
         #by bin width in both dimensions
         #Get the bin size in both dimensions
         ebin_sizes = get_bin_sizes(ebins)
         czbin_sizes = 2.*np.pi*get_bin_sizes(czbins)
+        #czbin_sizes = 2.*np.pi*get_bin_sizes(upbins)
         bin_sizes = np.meshgrid(ebin_sizes, czbin_sizes)
     
+        return_table = np.concatenate((down_table,up_table)) 
         return_table *= np.abs(bin_sizes[0]*bin_sizes[1])
-    
         return return_table.T
 

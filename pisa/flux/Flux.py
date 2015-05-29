@@ -22,7 +22,7 @@ import numpy as np
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
 from pisa.analysis.stats.Maps import apply_ratio_scale
-from pisa.flux.HondaFluxService import MuonFluxService, HondaFluxService, primaries
+from pisa.flux.HondaFluxService import HondaFluxService, primaries
 from pisa.utils.log import logging, physics, set_verbosity
 from pisa.utils.jsons import from_json, to_json, json_string
 from pisa.utils.proc import report_params, get_params, add_params
@@ -88,8 +88,7 @@ def get_median_energy(flux_map):
 
     return energy
 
-def get_flux_maps(nu_flux_service, muon_flux_service,
-                  ebins, czbins, nue_numu_ratio, energy_scale,
+def get_flux_maps(flux_service, ebins, czbins, nue_numu_ratio, energy_scale,
                   atm_delta_index,**kwargs):
     """
     Get a set of flux maps for the different primaries.
@@ -113,21 +112,16 @@ def get_flux_maps(nu_flux_service, muon_flux_service,
     # Initialize return dict
     maps = {'params': params}
 
-    flux_service = dict.fromkeys(primaries,nu_flux_service)
-    flux_service['muons'] = muon_flux_service
-
-    for prim, service in flux_service.items():
+    for prim in primaries:
 
         # Get the flux for this primary
-        if(not(service.get_flux(ebins*energy_scale,czbins,prim)==None)):
-          maps[prim] = {'ebins': ebins,
-                        'czbins': czbins,
-                        'map': service.get_flux(ebins*energy_scale,czbins,prim)}
+        maps[prim] = {'ebins': ebins,
+                      'czbins': czbins,
+                      'map': flux_service.get_flux(ebins*energy_scale,czbins,prim)}
 
         # be a bit verbose
-        if(prim in maps.keys()):
-          logging.trace("Total flux of %s is %u [s^-1 m^-2]"%
-                        (prim,maps[prim]['map'].sum()))
+        logging.trace("Total flux of %s is %u [s^-1 m^-2]"%
+                      (prim,maps[prim]['map'].sum()))
 
     # now scale the nue(bar) / numu(bar) flux ratios, keeping the total
     # Flux (nue + numu, nue_bar + numu_bar) constant, or return unscaled maps:
@@ -156,9 +150,6 @@ if __name__ == '__main__':
     parser.add_argument('--flux_file', metavar='FILE', type=str,
                         help= '''Input flux file in Honda format. ''',
                         default = 'flux/spl-solmax-aa.d')
-    parser.add_argument('--muon_flux_file', metavar='FILE', type=str,
-        help= '''Input flux file for CR muons. ''',
-        default = 'flux/GaisserH4a_atmod12_SIBYLL.d')
     parser.add_argument('--nue_numu_ratio',metavar='FLOAT',type=float,
                         help='''Factor to scale nue_flux by''',default=1.0)
     parser.add_argument('--delta_index',metavar='FLOAT',type=float,
@@ -181,13 +172,11 @@ if __name__ == '__main__':
                                 (len(args.czbins)-1,args.czbins[0],args.czbins[-1]))
 
     #Instantiate a flux model
-    nu_flux_model = HondaFluxService(flux_file=args.flux_file,flux_bins=np.linspace(-0.95,0.95,20))
-    muon_flux_model = MuonFluxService(flux_file=args.muon_flux_file,flux_bins=np.linspace(0,0.95,10))
+    flux_model = HondaFluxService(args.flux_file)
 
     #get the flux
     flux_maps = get_flux_maps(
-        nu_flux_model,muon_flux_model,
-        args.ebins,args.czbins,args.nue_numu_ratio,args.energy_scale,
+        flux_model,args.ebins,args.czbins,args.nue_numu_ratio,args.energy_scale,
         args.delta_index)
 
 
